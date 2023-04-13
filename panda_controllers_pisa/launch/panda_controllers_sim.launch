@@ -8,8 +8,10 @@
 
 	<rosparam command="load" file="$(find panda_controllers)/config/panda_controllers_default.yaml" ns="/panda"/>
 	
-	<node name="controller_load" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"  args="load computed_torque_controller"/>
-	<node name="controller_spawn" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"  args="spawn computed_torque_controller"/>
+	<!-- <node name="controller_load" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"  args="load computed_torque_controller"/>
+	<node name="controller_spawn" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"  args="spawn computed_torque_controller"/> -->
+	<node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="computed_torque_controller"/>
+
 
 	<include file="$(find franka_gazebo)/launch/panda.launch">
 		<!-- <arg name="rviz" value="true" /> -->

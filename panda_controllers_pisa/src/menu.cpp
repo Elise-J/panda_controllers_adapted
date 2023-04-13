@@ -21,6 +21,7 @@
 #include "std_srvs/SetBool.h"
 // #include "geometry_msgs/Pose.h"
 #include "sensor_msgs/JointState.h"
+#include <panda_controllers/Commands.h>
 
 using namespace std;
 
@@ -108,12 +109,12 @@ int main(int argc, char **argv)
 
 	// ros::Publisher pub_cube = node_handle.advertise<panda_controllers::cubeRef>("/qb_class/cube_ref",1);
 
-	ros::Publisher pub_cmd = node_handle.advertise<sensor_msgs::JointState>("/computed_torque_controller/command", 1000);
+	ros::Publisher pub_cmd = node_handle.advertise<panda_controllers::Commands>("/panda/computed_torque_controller/command", 1000);
 	ros::Subscriber sub_joints =  node_handle.subscribe<sensor_msgs::JointState>("/franka_state_controller/joint_states", 1,  &jointsCallback);
 	// ros::Subscriber sub_pose =  node_handle.subscribe("/franka_state_controller/franka_ee_pose", 1, &poseCallback);
 
 	// CREATING THE MESSAGE
-	sensor_msgs::JointState traj_msg;
+	panda_controllers::Commands traj_msg;
 	// panda_controllers::DesiredTrajectory traj_msg;
 	// panda_controllers::cubeRef cube_msg;
 
@@ -167,6 +168,7 @@ int main(int argc, char **argv)
 			cin>> qf(4);
 			cin>> qf(5);
 			cin>> qf(6);
+			cout<<"final_joint_positions: " << qf <<endl;
 		}else if (choice == 2){
 			cout<<"-not implemented yet-"<<endl;
 			// cin>>demo;
@@ -239,7 +241,7 @@ int main(int argc, char **argv)
 		t_init = ros::Time::now();
 
 		t = (ros::Time::now() - t_init).toSec();
-
+		init = false;
 		while (t <= tf && init == false)
 		{
 			if (choice == 1){
@@ -261,11 +263,15 @@ int main(int argc, char **argv)
 			traj_msg.header.stamp = ros::Time::now();
 
 			std::vector<double> pose_des {traj.pos_des[0], traj.pos_des[1],traj.pos_des[2],traj.pos_des[3],traj.pos_des[4],traj.pos_des[5],traj.pos_des[6]};
-			traj_msg.position = pose_des;
+			traj_msg.joint_commands.position = pose_des;
 			std::vector<double> vel_des {traj.vel_des[0], traj.vel_des[1],traj.vel_des[2],traj.vel_des[3],traj.vel_des[4],traj.vel_des[5],traj.vel_des[6]};
-			traj_msg.velocity = vel_des;
+			traj_msg.joint_commands.velocity = vel_des;
 			std::vector<double> acc_des {traj.acc_des[0], traj.acc_des[1],traj.acc_des[2],traj.acc_des[3],traj.acc_des[4],traj.acc_des[5],traj.acc_des[6]};
-			traj_msg.effort = acc_des;
+			traj_msg.joint_commands.effort = acc_des;
+
+			vector<double> row1 = {  1.0,  2.0,  3.0,  4.0,  5.0 };
+
+			traj_msg.extra_torque =  {  1.0,  2.0,  3.0,  4.0,  5.0 };
 
 			// traj_msg.pose.position.x = traj.pos_des.x();
 			// traj_msg.pose.position.y = traj.pos_des.y();

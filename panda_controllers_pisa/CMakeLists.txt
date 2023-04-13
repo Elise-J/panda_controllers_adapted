@@ -18,20 +18,22 @@ find_package(catkin REQUIRED COMPONENTS
 	realtime_tools
 	roscpp
 	rospy
+	sensor_msgs
 )
 
 find_package(Eigen3 REQUIRED)
 find_package(Franka 0.5.0 REQUIRED)
 
-#add_message_files(FILES
-# )
+add_message_files(
+	FILES
+	Commands.msg
+	CommandParams.msg
+)
 
-# generate_messages(
-# 	DEPENDENCIES##
-# 	franka_msgs##
-# 	std_msgs
-# 	geometry_msgs
-# )
+generate_messages(
+ 	DEPENDENCIES
+ 	sensor_msgs
+ )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
@@ -68,6 +70,7 @@ add_library(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
 	${${PROJECT_NAME}_EXPORTED_TARGETS}
 	panda_controllers ${catkin_EXPORTED_TARGETS}
+	custom_msg_generate_messages_cpp
 )
 
 add_executable(menu src/menu.cpp)

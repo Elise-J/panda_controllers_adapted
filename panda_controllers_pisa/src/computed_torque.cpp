@@ -16,19 +16,25 @@ bool ComputedTorque::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle
 
 	/* Inizializing the Kp and Kv gains */
 
-	double kp1, kp2, kp3, kv1, kv2, kv3;
+	double kp1, kp2, kp3, kp4, kp5, kp6, kp7, kv1, kv2, kv3, kv4, kv5, kv6, kv7;
 
 	if (!node_handle.getParam("kp1", kp1) || !node_handle.getParam("kp2", kp2) || !node_handle.getParam("kp3", kp3) 
-		|| !node_handle.getParam("kv1", kv1) || !node_handle.getParam("kv2", kv2) || !node_handle.getParam("kv3", kv3)) {
+		|| !node_handle.getParam("kp4", kp4) || !node_handle.getParam("kp5", kp5) || !node_handle.getParam("kp6", kp6) 
+		|| !node_handle.getParam("kp7", kp7) 
+		|| !node_handle.getParam("kv1", kv1) || !node_handle.getParam("kv2", kv2) || !node_handle.getParam("kv3", kv3) 
+		|| !node_handle.getParam("kv4", kv4) || !node_handle.getParam("kv5", kv5) || !node_handle.getParam("kv6", kv6) 
+		|| !node_handle.getParam("kv7", kv7) ) {
 		ROS_ERROR("Computed Torque: Could not get parameter kpi or kv!");
 		return false;
 	}
 
 	Kp = Eigen::MatrixXd::Identity(7, 7);
-	Kp(0,0) = kp1; Kp(1,1) = kp1; Kp(2,2) = kp1; Kp(3,3) = kp1; Kp(4,4) = kp2; Kp(5,5) = kp2; Kp(6,6) = kp3;
+	Kp(0,0) = kp1; Kp(1,1) = kp2; Kp(2,2) = kp3; Kp(3,3) = kp4; Kp(4,4) = kp5; Kp(5,5) = kp6; Kp(6,6) = kp7;
 	
 	Kv = Eigen::MatrixXd::Identity(7, 7);
-	Kv(0,0) = kv1; Kv(1,1) = kv1; Kv(2,2) = kv1; Kv(3,3) = kv1; Kv(4,4) = kv2; Kv(5,5) = kv2; Kv(6,6) = kv3;
+	Kv(0,0) = kv1; Kv(1,1) = kv2; Kv(2,2) = kv3; Kv(3,3) = kv4; Kv(4,4) = kv5; Kv(5,5) = kv6; Kv(6,6) = kv7;
+
+	extra_torque << 0, 0, 0, 0, 0, 0, 0;
 	
 	/* Assigning the time */
    
@@ -90,7 +96,8 @@ bool ComputedTorque::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle
 	q_dot_limit << 2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61; 
 
 	/*Start command subscriber */
-	this->sub_command_ = node_handle.subscribe<sensor_msgs::JointState> ("command", 1, &ComputedTorque::setCommandCB, this);   //it verify with the callback that the command has been received
+	this->sub_command_ = node_handle.subscribe("command", 1, &ComputedTorque::setCommandCB, this);   //it verify with the callback that the command has been received
+	this->sub_command_param_ = node_handle.subscribe("command_param", 1, &ComputedTorque::setCommandParam, this);   //it verify with the callback that the command has been received
 	this->pub_err_ = node_handle.advertise<sensor_msgs::JointState> ("tracking_error", 1);
 	
 	return true;
@@ -171,7 +178,7 @@ void ComputedTorque::update(const ros::Time&, const ros::Duration& period)
 	Kp_apix = Kp;
 	Kv_apix = Kv;
 
-	tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error;  // C->C*dq
+	tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque;  // C->C*dq
 	
 	/* Verify the tau_cmd not exceed the desired joint torque value tau_J_d */
 	tau_cmd = saturateTorqueRate(tau_cmd, tau_J_d);
@@ -202,29 +209,68 @@ Eigen::Matrix<double, 7, 1> ComputedTorque::saturateTorqueRate(
 	return tau_d_saturated;
 }
 
-void ComputedTorque::setCommandCB(const sensor_msgs::JointStateConstPtr& msg)
+void ComputedTorque::setCommandCB(const panda_controllers::Commands& msg)
 {
-	if ((msg->position).size() != 7 || (msg->position).empty()) {
+	if ((msg.joint_commands.position).size() != 7 || (msg.joint_commands.position).empty()) {
 
-		ROS_FATAL("Desired position has not dimension 7 or is empty!", (msg->position).size());
+		ROS_FATAL("Desired position has not dimension 7 or is empty!", (msg.joint_commands.position).size());
 	}
 
-	if ((msg->velocity).size() != 7 || (msg->velocity).empty()) {
+	if ((msg.joint_commands.velocity).size() != 7 || (msg.joint_commands.velocity).empty()) {
 
-		ROS_FATAL("Desired velocity has not dimension 7 or is empty!", (msg->velocity).size());
+		ROS_FATAL("Desired velocity has not dimension 7 or is empty!", (msg.joint_commands.velocity).size());
 	}
 
 	// TODO: Here we assign acceleration to effort (use trajectory_msgs::JointTrajectoryMessage)
-	if ((msg->effort).size() != 7 || (msg->effort).empty()) {
+	if ((msg.joint_commands.effort).size() != 7 || (msg.joint_commands.effort).empty()) {
 
-		ROS_FATAL("Desired effort (acceleration) has not dimension 7 or is empty!", (msg->effort).size());
+		ROS_FATAL("Desired effort (acceleration) has not dimension 7 or is empty!", (msg.joint_commands.effort).size());
 	}
 
-	command_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg->position).data());
-	command_dot_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg->velocity).data());
-	command_dot_dot_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg->effort).data());
+	if ((msg.extra_torque).size() != 7) {
+
+		ROS_FATAL("Desired extra_torque has not dimension 7!", (msg.extra_torque).size());
+	}
+	if (!(msg.extra_torque).empty()) {
+		extra_torque = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg.extra_torque).data());
+	}
+
+	command_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg.joint_commands.position).data());
+	command_dot_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg.joint_commands.velocity).data());
+	command_dot_dot_q_d = Eigen::Map<const Eigen::Matrix<double, 7, 1>>((msg.joint_commands.effort).data());
 
 }
+
+void ComputedTorque::setCommandParam(const panda_controllers::CommandParams& msg)
+{
+
+	if ((msg.stiffness).size() != 7) {
+
+		ROS_FATAL("Desired stiffness has not dimension 7!", (msg.stiffness).size());
+	}
+
+	if ((msg.damping).size() != 7) {
+
+		ROS_FATAL("Desired damping has not dimension 7!", (msg.damping).size());
+	}
+	
+	if (!(msg.stiffness).empty()) {
+		Kp(0,0) = msg.stiffness[0]; Kp(1,1) = msg.stiffness[1]; Kp(2,2) = msg.stiffness[2]; 
+		Kp(3,3) = msg.stiffness[3]; Kp(4,4) = msg.stiffness[4]; Kp(5,5) = msg.stiffness[5]; 
+		Kp(6,6) = msg.stiffness[6];
+	}
+
+	if (!(msg.damping).empty()) {
+		Kv(0,0) = msg.damping[0]; Kv(1,1) = msg.damping[1]; Kv(2,2) = msg.damping[2]; 
+		Kv(3,3) = msg.damping[3]; Kv(4,4) = msg.damping[4]; Kv(5,5) = msg.damping[5]; 
+		Kv(6,6) = msg.damping[6];
+	}
+
+	std::cout<<"KV: " << Kv <<std::endl;
+	std::cout<<"KP: " << Kp <<std::endl;
+
+}
+
 
 }
 

@@ -22,6 +22,9 @@
 
 //Ros Message
 #include <sensor_msgs/JointState.h>
+#include <panda_controllers/Commands.h>
+#include <panda_controllers/CommandParams.h>
+
 
 #define     DEBUG   0      
 
@@ -65,6 +68,10 @@ private:
     Eigen::Matrix<double, 7, 1> q_curr;
     Eigen::Matrix<double, 7, 1> dot_q_curr;
     Eigen::Matrix<double, 7, 1> tau_cmd;
+
+
+    /* Extra torque */
+    Eigen::Matrix<double, 7, 1> extra_torque;
     
     /* Error and dot error feedback */
     
@@ -100,11 +107,13 @@ private:
     
     ros::NodeHandle cvc_nh;
     ros::Subscriber sub_command_;
+    ros::Subscriber sub_command_param_;
     ros::Publisher pub_err_;
     
     /* Setting Command Callback*/
     
-    void setCommandCB (const sensor_msgs::JointStateConstPtr& msg);
+    void setCommandCB (const panda_controllers::Commands& msg);
+    void setCommandParam(const panda_controllers::CommandParams& msg);
     
     std::unique_ptr<franka_hw::FrankaStateHandle> state_handle_;
     std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;

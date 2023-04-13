@@ -10,12 +10,20 @@ computed_torque_controller:
          - panda_joint6
          - panda_joint7
     # --- Controller parameters --- #
-    kp1: 300.0   #default: 120.0
-    kp2: 150.0   #default: 70.0
-    kp3: 30.0    #default: 50.0
-    kv1: 30.0
-    kv2: 15.0
-    kv3: 3.0
+    kp1: 7.04   #default: 120.0
+    kp2: 7.04   #default: 70.0
+    kp3: 7.04    #default: 50.0
+    kp4: 5.76
+    kp5: 3.84
+    kp6: 3.84
+    kp7: 3.2
+    kv1: 10.5
+    kv2: 10.5
+    kv3: 10.5
+    kv4: 9.1
+    kv5: 7.69
+    kv6: 7.0
+    kv7: 5.6
     dt: 5
 
 cartesian_impedance_controller_softbots:
