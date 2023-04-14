@@ -71,7 +71,14 @@ private:
 
 
     /* Extra torque */
+
     Eigen::Matrix<double, 7, 1> extra_torque;
+    
+    /* Friction */
+
+    Eigen::Matrix<double, 7, 1> previous_torque = Eigen::Matrix<double, 7, 1>::Zero();
+    Eigen::Matrix<double, 7, 1> joint_friction = Eigen::Matrix<double, 7, 1>::Zero();
+    Eigen::Matrix<double, 7, 1> tau_J;
     
     /* Error and dot error feedback */
     

@@ -13,9 +13,9 @@ computed_torque_controller:
     kp1: 7.04   #default: 120.0
     kp2: 7.04   #default: 70.0
     kp3: 7.04    #default: 50.0
-    kp4: 5.76
-    kp5: 3.84
-    kp6: 3.84
+    kp4: 7.04
+    kp5: 7.04
+    kp6: 7.04
     kp7: 3.2
     kv1: 10.5
     kv2: 10.5
