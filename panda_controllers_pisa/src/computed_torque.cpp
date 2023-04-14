@@ -265,10 +265,6 @@ void ComputedTorque::setCommandParam(const panda_controllers::CommandParams& msg
 		Kv(3,3) = msg.damping[3]; Kv(4,4) = msg.damping[4]; Kv(5,5) = msg.damping[5]; 
 		Kv(6,6) = msg.damping[6];
 	}
-
-	std::cout<<"KV: " << Kv <<std::endl;
-	std::cout<<"KP: " << Kp <<std::endl;
-
 }
 
 
