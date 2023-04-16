@@ -162,18 +162,18 @@ void ComputedTorque::update(const ros::Time&, const ros::Duration& period)
 	// command_dot_dot_q_d = (command_dot_q_d - command_dot_q_d_old) / dt;
 
 	// // Estimate friction
-	std::array<double, 7> gravity_array = model_handle_->getGravity();
-	Eigen::Map<const Eigen::Matrix<double, 7, 1> > gravity(gravity_array.data());
-	double alpha = 0.02;
-	tau_J = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_J.data());
-	Eigen::Matrix<double, 7, 1> new_friction = previous_torque - tau_J + gravity;
-	Eigen::Matrix<double, 7, 1> filtered_friction = alpha*new_friction + (1-alpha)*joint_friction;
-	joint_friction = filtered_friction;
-	double friction_compensation = 0.0;
-	Eigen::Matrix<double, 7, 1> current_v = Eigen::Map<Eigen::Matrix<double, 7, 1>>((robot_state.dq).data());
-	if (current_v.isZero()) friction_compensation = 0.3;
-	else friction_compensation = 1.0;
-	Eigen::Matrix<double, 7, 1> friction_correction = friction_compensation*joint_friction;
+	// std::array<double, 7> gravity_array = model_handle_->getGravity();
+	// Eigen::Map<const Eigen::Matrix<double, 7, 1> > gravity(gravity_array.data());
+	// double alpha = 0.02;
+	// tau_J = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_J.data());
+	// Eigen::Matrix<double, 7, 1> new_friction = previous_torque - tau_J + gravity;
+	// Eigen::Matrix<double, 7, 1> filtered_friction = alpha*new_friction + (1-alpha)*joint_friction;
+	// joint_friction = filtered_friction;
+	// double friction_compensation = 0.0;
+	// Eigen::Matrix<double, 7, 1> current_v = Eigen::Map<Eigen::Matrix<double, 7, 1>>((robot_state.dq).data());
+	// if (current_v.isZero()) friction_compensation = 0.3;
+	// else friction_compensation = 1.0;
+	// Eigen::Matrix<double, 7, 1> friction_correction = friction_compensation*joint_friction;
 
 	/* Computed Torque control law */
 
@@ -192,7 +192,7 @@ void ComputedTorque::update(const ros::Time&, const ros::Duration& period)
 	Kp_apix = Kp;
 	Kv_apix = Kv;
 
-	tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque + friction_correction;  // C->C*dq
+	tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque; // + friction_correction;  // C->C*dq
 
 	/* Verify the tau_cmd not exceed the desired joint torque value tau_J_d */
 	tau_cmd = saturateTorqueRate(tau_cmd, tau_J_d);
