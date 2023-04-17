@@ -27,7 +27,6 @@ RUN cd libfranka && git checkout 0.8.0 && git submodule update && mkdir build
 WORKDIR /home/${USER}/ros_ws/src/libfranka/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF .. && cmake --build . && make -j && sudo make install -j && sudo ldconfig
 WORKDIR ${HOME}
-# RUN sudo rm -rf /source
 
 # Lib franka ROS
 WORKDIR /home/${USER}/ros_ws/src
@@ -36,7 +35,6 @@ RUN cd franka_ros && git checkout 0.8.0 && git submodule update
 WORKDIR /home/${USER}/ros_ws
 RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y --skip-keys libfranka
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/home/${USER}/libfranka/build"
-# -DCATKIN_BLACKLIST_PACKAGES='franka_gazebo'"
 
 WORKDIR /home/${USER}/ros_ws
 COPY --chown=${USER} ./panda_controllers_pisa ./src/panda_controllers_pisa
