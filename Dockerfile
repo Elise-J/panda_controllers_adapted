@@ -37,7 +37,7 @@ RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y --skip-ke
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/home/${USER}/libfranka/build"
 
 WORKDIR /home/${USER}/ros_ws
-COPY --chown=${USER} ./panda_controllers_pisa ./src/panda_controllers_pisa
+COPY --chown=${USER} ./panda_controllers ./src/panda_controllers
 
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
