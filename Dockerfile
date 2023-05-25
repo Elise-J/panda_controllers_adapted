@@ -13,8 +13,8 @@ RUN if [ "${HOST_GID}" != "1000" ];\
     usermod ${USER} -a -G ${USER_GROUP}; fi
 USER ${USER}
 
-RUN echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | sudo tee /etc/apt/sources.list.d/robotpkg.list
-RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-key add -
+# RUN echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | sudo tee /etc/apt/sources.list.d/robotpkg.list
+# RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-key add -
 
 RUN sudo apt-get update -y
 RUN sudo apt-get install ros-noetic-ros-controllers ros-noetic-gazebo-ros-control -y
