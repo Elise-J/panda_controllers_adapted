@@ -123,6 +123,7 @@ namespace panda_controllers
 		this->sub_command_ = node_handle.subscribe("command", 1, &ComputedTorque::setCommandCB, this);				  // it verify with the callback that the command has been received
 		this->sub_command_param_ = node_handle.subscribe("command_param", 1, &ComputedTorque::setCommandParam, this); // it verify with the callback that the command has been received
 		this->pub_err_ = node_handle.advertise<sensor_msgs::JointState>("tracking_error", 1);
+		this->pub_state_ = node_handle.advertise<sensor_msgs::JointState>("joint_state", 1);
 
 		return true;
 	}
@@ -185,19 +186,21 @@ namespace panda_controllers
 
 		// command_dot_dot_q_d = (command_dot_q_d - command_dot_q_d_old) / dt;
 
-		// // Estimate friction
-		// std::array<double, 7> gravity_array = model_handle_->getGravity();
-		// Eigen::Map<const Eigen::Matrix<double, 7, 1> > gravity(gravity_array.data());
-		// double alpha = 0.02;
-		// tau_J = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_J.data());
-		// Eigen::Matrix<double, 7, 1> new_friction = previous_torque - tau_J + gravity;
-		// Eigen::Matrix<double, 7, 1> filtered_friction = alpha*new_friction + (1-alpha)*joint_friction;
-		// joint_friction = filtered_friction;
-		// double friction_compensation = 0.0;
+		// Estimate friction
+		std::array<double, 7> gravity_array = model_handle_->getGravity();
+		Eigen::Map<const Eigen::Matrix<double, 7, 1>> gravity(gravity_array.data());
+		double alpha = 0.02;
+		tau_J = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_J.data());
+		Eigen::Matrix<double, 7, 1> new_friction = previous_torque - tau_J + gravity;
+		Eigen::Matrix<double, 7, 1> filtered_friction = alpha * new_friction + (1 - alpha) * joint_friction;
+		joint_friction = filtered_friction;
+		double friction_compensation = 1.0;
 		// Eigen::Matrix<double, 7, 1> current_v = Eigen::Map<Eigen::Matrix<double, 7, 1>>((robot_state.dq).data());
-		// if (current_v.isZero()) friction_compensation = 0.3;
-		// else friction_compensation = 1.0;
-		// Eigen::Matrix<double, 7, 1> friction_correction = friction_compensation*joint_friction;
+		// if (current_v.isZero())
+		// 	friction_compensation = 0.3;
+		// else
+		// 	friction_compensation = 1.0;
+		Eigen::Matrix<double, 7, 1> friction_correction = friction_compensation * joint_friction;
 
 		/* Computed Torque control law */
 
@@ -213,10 +216,19 @@ namespace panda_controllers
 		error_msg.velocity = dot_err_vec;
 		this->pub_err_.publish(error_msg);
 
+		// Publish robot state
+		sensor_msgs::JointState joint_state_msg;
+		std::vector<double> joint_pos_vec(q_curr.data(), q_curr.data() + q_curr.rows() * q_curr.cols());
+		std::vector<double> joint_vel_vec(dot_q_curr.data(), dot_q_curr.data() + dot_q_curr.rows() * dot_q_curr.cols());
+		joint_state_msg.header.stamp = ros::Time::now();
+		joint_state_msg.position = joint_pos_vec;
+		joint_state_msg.velocity = joint_vel_vec;
+		this->pub_state_.publish(joint_state_msg);
+
 		Kp_apix = Kp;
 		Kv_apix = Kv;
 
-		tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque; // + friction_correction;  // C->C*dq
+		tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque + friction_correction; // C->C*dq
 
 		/* Verify the tau_cmd not exceed the desired joint torque value tau_J_d */
 		tau_cmd = saturateTorqueRate(tau_cmd, tau_J_d);

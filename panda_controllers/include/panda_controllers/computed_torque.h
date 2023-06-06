@@ -116,6 +116,7 @@ namespace panda_controllers
         ros::Subscriber sub_command_;
         ros::Subscriber sub_command_param_;
         ros::Publisher pub_err_;
+        ros::Publisher pub_state_;
 
         /* Setting Command Callback*/
 
