@@ -172,6 +172,15 @@ namespace panda_controllers
 		q_curr = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.q.data());
 		dot_q_curr = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.dq.data());
 
+		// Publish robot state
+		sensor_msgs::JointState joint_state_msg;
+		std::vector<double> joint_pos_vec(q_curr.data(), q_curr.data() + q_curr.rows() * q_curr.cols());
+		std::vector<double> joint_vel_vec(dot_q_curr.data(), dot_q_curr.data() + dot_q_curr.rows() * dot_q_curr.cols());
+		joint_state_msg.header.stamp = ros::Time::now();
+		joint_state_msg.position = joint_pos_vec;
+		joint_state_msg.velocity = joint_vel_vec;
+		this->pub_state_.publish(joint_state_msg);
+
 		/* tau_J_d is the desired link-side joint torque sensor signals without gravity */
 
 		tau_J_d = Eigen::Map<Eigen::Matrix<double, 7, 1>>(robot_state.tau_J_d.data());
@@ -216,22 +225,11 @@ namespace panda_controllers
 		error_msg.velocity = dot_err_vec;
 		this->pub_err_.publish(error_msg);
 
-		// Publish robot state
-		sensor_msgs::JointState joint_state_msg;
-		std::vector<double> joint_pos_vec(q_curr.data(), q_curr.data() + q_curr.rows() * q_curr.cols());
-		std::vector<double> joint_vel_vec(dot_q_curr.data(), dot_q_curr.data() + dot_q_curr.rows() * dot_q_curr.cols());
-		joint_state_msg.header.stamp = ros::Time::now();
-		joint_state_msg.position = joint_pos_vec;
-		joint_state_msg.velocity = joint_vel_vec;
-		this->pub_state_.publish(joint_state_msg);
-
 		Kp_apix = Kp;
 		Kv_apix = Kv;
 
-		tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque + friction_correction; // C->C*dq
-
-		/* Verify the tau_cmd not exceed the desired joint torque value tau_J_d */
-		tau_cmd = saturateTorqueRate(tau_cmd, tau_J_d);
+		// tau_cmd = M * command_dot_dot_q_d + C + Kp_apix * error + Kv_apix * dot_error + extra_torque + friction_correction; // C->C*dq
+		tau_cmd = M * command_dot_dot_q_d + Kp_apix * error + Kv_apix * dot_error; // C->C*dq
 
 		if (torque_limit)
 		{
@@ -240,18 +238,20 @@ namespace panda_controllers
 			{
 				if (tau_cmd[i] >= 0)
 				{
-					clip_tau[i] = std::max(max_torque, tau_cmd[i]);
+					clip_tau[i] = std::min(max_torque, tau_cmd[i]);
 				}
 				else
 				{
-					clip_tau[i] = std::min(-max_torque, tau_cmd[i]);
+					clip_tau[i] = std::max(-max_torque, tau_cmd[i]);
 				}
 			}
 			tau_cmd = clip_tau;
 		}
-
+		tau_cmd += (C + extra_torque + friction_correction); 
+		/* Verify the tau_cmd not exceed the desired joint torque value tau_J_d */
+		tau_cmd = saturateTorqueRate(tau_cmd, tau_J_d);
 		previous_torque = tau_cmd;
-
+		// std::cout << tau_cmd << std::endl; 
 		/* Set the command for each joint */
 		for (size_t i = 0; i < 7; i++)
 		{
